@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/adrianpanatra/adrian-bank/errs"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -12,14 +13,23 @@ type CustomerRepositoryDb struct {
 	client *sql.DB
 }
 
-func (d CustomerRepositoryDb) FindAll() ([]Customer, error) {
-
-	findAllSql := "select customer_id, name, city, zipcode, date_of_birth, status from customers"
-
-	rows, err := d.client.Query(findAllSql)
+func (d CustomerRepositoryDb) FindAll(status string) ([]Customer, *errs.AppError) {
+	var rows *sql.Rows
+	var err error
+	if status == "" {
+		findAllSql := "select customer_id, name, city, zipcode, date_of_birth, status from customers"
+		rows, err = d.client.Query(findAllSql)
+	} else {
+		findAllSql := "select customer_id, name, city, zipcode, date_of_birth, status from customers where status = ?"
+		rows, err = d.client.Query(findAllSql, status)
+	}
 	if err != nil {
-		log.Println("Error while querying customer table " + err.Error())
-		return nil, err
+		if err == sql.ErrNoRows {
+			return nil, errs.NewNotFoundError("Customer not found")
+		} else {
+			log.Println("Error while querying customer table " + err.Error())
+			return nil, errs.NewUnexpectedError("Unexpected database error")
+		}
 	}
 	customers := make([]Customer, 0)
 	for rows.Next() {
@@ -27,11 +37,28 @@ func (d CustomerRepositoryDb) FindAll() ([]Customer, error) {
 		err := rows.Scan(&c.Id, &c.Name, &c.City, &c.Zipcode, &c.DateofBirth, &c.Status)
 		if err != nil {
 			log.Println("Error while scanning customer " + err.Error())
-			return nil, err
+			return nil, errs.NewUnsuccesfullError("Error while scanning customer")
 		}
 		customers = append(customers, c)
 	}
 	return customers, nil
+}
+
+func (d CustomerRepositoryDb) ById(id string) (*Customer, *errs.AppError) {
+	customerSql := "select customer_id, name, city, zipcode, date_of_birth, status from customers where customer_id = ?"
+
+	row := d.client.QueryRow(customerSql, id)
+	var c Customer
+	err := row.Scan(&c.Id, &c.Name, &c.City, &c.Zipcode, &c.DateofBirth, &c.Status)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errs.NewNotFoundError("Customer not found")
+		} else {
+			log.Println("Error while scanning customr" + err.Error())
+			return nil, errs.NewUnexpectedError("Unexpected database error")
+		}
+	}
+	return &c, nil
 }
 
 func NewCustomerRepositoryDB() CustomerRepositoryDb {
