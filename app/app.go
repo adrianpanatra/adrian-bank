@@ -21,6 +21,7 @@ func Start() {
 	// define routes
 	router.HandleFunc("/customers", ch.getAllCustomer).Methods(http.MethodGet)
 	router.HandleFunc("/customers/{customer_id:[0-9]+}", ch.getCustomer).Methods(http.MethodGet)
+	router.HandleFunc("/customers{status}", ch.getCustomer).Methods(http.MethodGet)
 
 	// router.HandleFunc("/greet", greet).Methods(http.MethodGet)
 	// router.HandleFunc("/customers", getAllCustomer).Methods(http.MethodGet)
