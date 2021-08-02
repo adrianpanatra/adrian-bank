@@ -1,14 +1,37 @@
 package domain
 
-import "github.com/adrianpanatra/adrian-bank/errs"
+import (
+	"github.com/adrianpanatra/adrian-bank/dto"
+	"github.com/adrianpanatra/adrian-bank/errs"
+)
 
 type Customer struct {
-	Id          string `json:"id"`
-	Name        string `json:"name"`
-	City        string `json:"city"`
-	Zipcode     string `json:"zip_code"`
-	DateofBirth string `json:"date_of_birth"`
-	Status      string `json:"status"`
+	Id          string `db:"customer_id"`
+	Name        string
+	City        string
+	Zipcode     string
+	DateofBirth string `db:"date_of_birth"`
+	Status      string
+}
+
+func (c Customer) statusAsText() string {
+	statusAsText := "active"
+	if c.Status == "0" {
+		statusAsText = "inactive"
+	}
+	return statusAsText
+}
+
+func (c Customer) ToDto() dto.CustomerResponse {
+
+	return dto.CustomerResponse{
+		Id:          c.Id,
+		Name:        c.Name,
+		City:        c.City,
+		Zipcode:     c.Zipcode,
+		DateofBirth: c.DateofBirth,
+		Status:      c.statusAsText(),
+	}
 }
 
 type CustomerRepository interface {
